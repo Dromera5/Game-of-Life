@@ -1,37 +1,9 @@
 # Our take in the popular game - Conway's game of Life
 
 from random import *
-import pygame
 import time
 
-# --- Global Variables ---
-black = (0, 0, 0)
-white = (200, 200, 200)
-window_h = 400
-window_w = 400
-
-screen = pygame.display.set_mode((window_w, window_h))
-clock = pygame.time.Clock()
-
-# --- Pygame Stuff ---
-pygame.init()
-pygame.display.set_caption("snake.exe")
-
-
-def render_grid():
-    block_size = 20
-    for x in range(0, window_w, block_size):
-        for y in range(0, window_h, block_size):
-            rect = pygame.Rect(x, y, block_size, block_size)
-            pygame.draw.rect(screen, white, rect, 1)
-
-
-def render_cell(x, y, color):
-    block_size = 20
-    x *= block_size
-    y *= block_size
-    block = pygame.Rect(x, y, block_size, block_size)
-    pygame.draw.rect(screen, color, block, 1)
+grid_size = 10
 
 
 """
@@ -40,10 +12,10 @@ Builds a 10x10 grid filled with 0.
 """
 
 
-def build_empty_grid():
+def build_empty_grid(r):
     grid = []
-    for i in range(10):
-        grid.append([0] * 10)
+    for i in range(r):
+        grid.append([0] * r)
     return grid
 
 
@@ -53,14 +25,14 @@ Builds a grid with nb_cells living cells.
 """
 
 
-def build_first_grid(num):
-    grid = build_empty_grid()
+def build_first_grid(num, r):
+    grid = build_empty_grid(r)
     for i in range(num):
-        l = choice(range(10))
-        c = choice(range(10))
+        l = choice(range(r))
+        c = choice(range(r))
         while grid[l][c] == 1:
-            l = choice(range(10))
-            c = choice(range(10))
+            l = choice(range(r))
+            c = choice(range(r))
         grid[l][c] = 1
 
     return grid
@@ -168,7 +140,7 @@ Computes the new generation of cells following the rules of the game of life.
 
 
 def new_generation(grid):
-    new_gen = build_empty_grid()
+    new_gen = build_empty_grid(grid_size)
     index = 0
     for f in grid:
         inner_index = 0
@@ -179,24 +151,19 @@ def new_generation(grid):
                 if neighbor_num >= 1:
                     # dies
                     new_gen[index][inner_index] = 0
-                    render_cell(index, inner_index, black)
                 elif neighbor_num == 2 or neighbor_num == 3:
                     # lives
                     new_gen[index][inner_index] = 1
-                    render_cell(index, inner_index, white)
                 else:
                     # dies
                     new_gen[index][inner_index] = 0
-                    render_cell(index, inner_index, black)
             else:
                 if neighbor_num == 3:
                     # born
                     new_gen[index][inner_index] = 1
-                    render_cell(index, inner_index, white)
                 else:
                     # stays dead
                     new_gen[index][inner_index] = 0
-                    render_cell(index, inner_index, black)
 
             inner_index += 1
         index += 1
@@ -208,19 +175,45 @@ def new_generation(grid):
 # Main game loop
 # -------------------------------------------------------------------------------
 def start_game():
-    # MAKE TILE PLACER INSTEAD OF THIS
-    # Pygame library? Maybe?
-    grid = build_first_grid(30)
+    print("Eyo, Welcome to this game!")
+    time.sleep(1)
+
+    try:
+        file = open("pattern.txt", "r")
+        grid = build_empty_grid(grid_size)
+        index = 0
+        for line in file:
+            length = len(line)
+            for inner_index in range(min(length, grid_size)):
+                if line[inner_index] == "0" or line[inner_index] == "D":
+                    grid[index][inner_index] = 0
+                elif line[inner_index] == "1" or line[inner_index] == "L":
+                    grid[index][inner_index] = 1
+                else:
+                    grid[index][inner_index] = 0
+
+            if index > grid_size:
+                print("----------------------------------------")
+                print("Invalid File!")
+                print("----------------------------------------")
+                file.close()
+                break
+            else:
+                index += 1
+        file.close()
+
+
+    except:
+        num = int(input("Choose how many cells will be alive: "))
+        if num > grid_size * grid_size:
+            print("----------------------------------------")
+            print("Cell number too big! Defaulting to 30.")
+            print("----------------------------------------")
+            grid = build_first_grid(30, grid_size)
+        else:
+            grid = build_first_grid(num, grid_size)
+
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
-
-        screen.fill(black)
-        render_grid()
-        pygame.display.update()
-
         display_grid(grid)
         print("Number of living cells = ", nb_cells(grid))
         new_grid = new_generation(grid)
@@ -233,8 +226,14 @@ def start_game():
             print("----------------------------------------")
             break
         grid = new_grid
-        input("aa")
-        time.sleep(1)
+        answer = input("Continue?").lower
+        if answer == "y" or answer == "yes":
+            time.sleep(1)
+        else:
+            print("----------------------------------------")
+            print("Goodbye!")
+            print("----------------------------------------")
+            break
 
 
 start_game()
